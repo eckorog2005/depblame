@@ -1,0 +1,9 @@
+{
+  "name": "fixture",
+  "version": "1.0.0",
+  "dependencies": {
+    "flat-cache": "^4.0.0",
+    "keyv": "^5.0.0",
+    "left-pad": "^1.0.0"
+  }
+}

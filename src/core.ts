@@ -1,4 +1,4 @@
-import { computeChanges, type Change } from "./changes.js";
+import { computeChangeGroups, type ChangeGroup } from "./change-groups.js";
 import type { State } from "./state.js";
 
 export const SCHEMA_VERSION = 1;
@@ -10,7 +10,7 @@ export type Outcome = "listed";
 export type Result = {
   schemaVersion: typeof SCHEMA_VERSION;
   testCommand: string[];
-  changes: Change[];
+  changeGroups: ChangeGroup[];
   warnings: string[];
   outcome: Outcome;
 };
@@ -19,7 +19,7 @@ export async function depblame(options: Options): Promise<Result> {
   return {
     schemaVersion: SCHEMA_VERSION,
     testCommand: options.testCommand,
-    changes: computeChanges(options.good, options.bad),
+    changeGroups: await computeChangeGroups(options.good, options.bad),
     warnings: [],
     outcome: "listed",
   };
