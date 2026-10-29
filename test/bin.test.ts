@@ -18,7 +18,7 @@ beforeAll(() => {
     .at(-1)!;
   const app = path.join(tmp, "app");
   fs.mkdirSync(app);
-  execFileSync("npm", ["install", "--offline", "--no-audit", "--no-fund", path.join(tmp, tarball)], {
+  execFileSync("npm", ["install", "--prefer-offline", "--no-audit", "--no-fund", path.join(tmp, tarball)], {
     cwd: app,
     stdio: "ignore",
   });
