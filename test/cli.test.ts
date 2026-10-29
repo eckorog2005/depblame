@@ -67,20 +67,25 @@ describe("listing Changes", () => {
 });
 
 describe("--json", () => {
-  it("prints the Changes as JSON with a schemaVersion", async () => {
+  it("prints the Change groups and their Changes as JSON with a schemaVersion", async () => {
     const { exitCode, stdout } = await between("moved", "--json");
 
     expect(exitCode).toBe(0);
     expect(JSON.parse(stdout)).toMatchObject({
       schemaVersion: 1,
-      changes: [
+      changeGroups: [
         {
-          name: "eslint-plugin-react",
-          kind: "moved",
-          fromPath: "node_modules/eslint-plugin-react",
-          path: "node_modules/@acme/lint-config/node_modules/eslint-plugin-react",
-          from: "7.37.5",
-          to: "7.37.5",
+          id: 1,
+          changes: [
+            {
+              name: "eslint-plugin-react",
+              kind: "moved",
+              fromPath: "node_modules/eslint-plugin-react",
+              path: "node_modules/@acme/lint-config/node_modules/eslint-plugin-react",
+              from: "7.37.5",
+              to: "7.37.5",
+            },
+          ],
         },
       ],
       warnings: [],
@@ -168,5 +173,69 @@ describe("state paths", () => {
 
     expect(exitCode).toBe(0);
     expect(stdout).toMatch(/bumped\s+left-pad\s+1\.0\.0 → 1\.3\.0/);
+  });
+});
+
+describe("Change groups", () => {
+  type JsonGroup = { id: number; changes: { kind: string; name: string }[] };
+
+  async function groupsBetween(name: string) {
+    const { exitCode, stdout, stderr } = await between(name, "--json");
+    expect(stderr).toBe("");
+    expect(exitCode).toBe(0);
+    return (JSON.parse(stdout).changeGroups as JsonGroup[]).map((group) =>
+      group.changes.map((change) => `${change.kind} ${change.name}`),
+    );
+  }
+
+  it("are printed with their Changes", async () => {
+    const { stdout } = await between("relocated");
+
+    expect(stdout).toMatch(/^3 Changes between the Good state and the Bad state, in 2 Change groups:\n/);
+    expect(stdout).toMatch(
+      /Change group 1\n\s+moved\s+eslint-plugin-react .*\n\s+moved\s+doctrine .*\n\s+Change group 2\n\s+bumped\s+left-pad\s+1\.0\.0 → 1\.3\.0/,
+    );
+  });
+
+  it("keeps a relocated package together with the packages nested under it", async () => {
+    expect(await groupsBetween("relocated")).toEqual([
+      ["moved eslint-plugin-react", "moved doctrine"],
+      ["bumped left-pad"],
+    ]);
+  });
+
+  it("groups a shared transitive Change with the dependents it would otherwise strand", async () => {
+    expect(await groupsBetween("shared-transitive")).toEqual([
+      ["removed keyv", "bumped flat-cache", "bumped keyv"],
+    ]);
+  });
+
+  it("groups a shared transitive Change with an unchanged dependent's nested copy of the old version", async () => {
+    expect(await groupsBetween("stranded-dependent")).toEqual([
+      ["added keyv", "bumped keyv"],
+      ["bumped left-pad"],
+    ]);
+  });
+
+  it("groups a Change that would make a package's peer resolve to its own nested child", async () => {
+    expect(await groupsBetween("peer-local")).toEqual([["bumped p", "bumped q", "added x"]]);
+  });
+
+  it("groups Changes coupled by a peer dependency, and leaves a peer that accepts both versions apart", async () => {
+    expect(await groupsBetween("peer-coupled")).toEqual([
+      ["bumped eslint", "bumped eslint-plugin-jest"],
+      ["bumped eslint-plugin-react"],
+    ]);
+  });
+
+  // The spike's real pair, from RedHatInsights/insights-inventory-frontend#3740. A file-entry-cache hoist
+  // couples eslint, stylelint and the keyv/flat-cache chain, so most Changes land in one group.
+  it("groups a real Dependabot lockfile pair", async () => {
+    const groups = await groupsBetween("insights-inventory-frontend-3740");
+    const groupOf = (change: string) => groups.findIndex((group) => group.includes(change));
+
+    expect(groups.map((group) => group.length)).toEqual([141, 9, 1, 1, 1, 1, 1, 1, 1]);
+    expect(groupOf("moved eslint-plugin-react")).toBe(groupOf("bumped keyv"));
+    expect(groupOf("bumped flat-cache")).toBe(groupOf("bumped keyv"));
   });
 });
