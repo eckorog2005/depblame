@@ -1,0 +1,25 @@
+{
+  "name": "depblame",
+  "version": "0.0.0",
+  "description": "Like git blame, but for dependencies: finds the dependency update that broke your build",
+  "type": "module",
+  "bin": {
+    "depblame": "dist/bin.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "fixture",
+  "version": "1.0.0",
+  "dependencies": {
+    "@acme/lint-config": "^1.0.0"
+  }
+}
